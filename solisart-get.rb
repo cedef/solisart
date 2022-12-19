@@ -4,13 +4,9 @@
 require 'getoptlong'
 require 'httparty'
 require 'base64'
+require 'date'
 
 require 'pp'
-
-SOLISART_INSTALLATION_ID=ENV["SOLISART_INSTALLATION_ID"]
-SOLISART_HOST=ENV["SOLISART_HOST"]
-SOLISART_USER=ENV["SOLISART_USER"]
-SOLISART_PASSWD=ENV["SOLISART_PASSWD"]
 
 EMOJIS = {
   :bois => "🪵",
@@ -79,6 +75,7 @@ SOLISART_DATA = {
 }
 
 CSV_FIELDS = [
+  "time",
   "consigne_t_maison",
   "t1_capteur_solaire",
   "t3_ballon_sanitaire_bas",
@@ -103,9 +100,9 @@ def retrieve_data
     #resp = HTTParty.get('http://192.168.1.42/')
     #puts "Cookies: #{session_cookie}"
     
-    resp_login = HTTParty.post("#{SOLISART_HOST}/admin/?page=installation&id=#{SOLISART_INSTALLATION_ID}",
-                               :body => { :id => SOLISART_USER,
-                                          :pass => SOLISART_PASSWD,
+    resp_login = HTTParty.post("#{$solisart_host}/admin/?page=installation&id=#{$solisart_installation_id}",
+                               :body => { :id => $solisart_user,
+                                          :pass => $solisart_passwd,
                                           :ihm => "admin",
                                           :connexion => "Se+connecter" },
                                           )
@@ -116,8 +113,8 @@ def retrieve_data
     #puts resp_login.headers["set-cookie"]
     #puts resp_login.body.slice(0..300)
     
-    resp_data = HTTParty.post("#{SOLISART_HOST}/admin/divers/ajax/lecture_valeurs_donnees.php",
-                              :body => { :id      => Base64.encode64(SOLISART_INSTALLATION_ID),
+    resp_data = HTTParty.post("#{$solisart_host}/admin/divers/ajax/lecture_valeurs_donnees.php",
+                              :body => { :id      => Base64.encode64($solisart_installation_id),
                                          :heure   => "0",
                                          :periode => 5 },
                               :headers => { :Cookie => cookie_hash.to_cookie_string } )
@@ -191,7 +188,11 @@ end
 def get_value_by_label(records, label)
   h = records.select{|k,v| v[:label] == label}
   begin
-    return h.values.first[:value]
+    if label == "time"
+      return DateTime.now
+    else
+      return h.values.first[:value]
+    end
   rescue => detail
     STDERR.puts "Invalid label: #{label}."
   end
@@ -265,6 +266,10 @@ opts = GetoptLong.new(
   ["--no-headers",      "-H", GetoptLong::NO_ARGUMENT],
   ["--output",          "-O", GetoptLong::REQUIRED_ARGUMENT],
   ["--append",          "-A", GetoptLong::NO_ARGUMENT],
+  ["--user",            "-u", GetoptLong::REQUIRED_ARGUMENT],
+  ["--passwd",          "-p", GetoptLong::REQUIRED_ARGUMENT],
+  ["--host",            "-s", GetoptLong::REQUIRED_ARGUMENT],
+  ["--installation-id", "-I", GetoptLong::REQUIRED_ARGUMENT],
 )
 
 # DEFAULT VARIABLES:
@@ -272,6 +277,12 @@ $format = "fancy"
 $output_filename = nil
 $output_append = false
 $csv_headers = true
+
+$solisart_installation_id=ENV["SOLISART_INSTALLATION_ID"] if ENV.has_key? "SOLISART_INSTALLATION_ID"
+$solisart_host=ENV["SOLISART_HOST"] if ENV.has_key? "SOLISART_HOST"
+$solisart_user=ENV["SOLISART_USER"] if ENV.has_key? "SOLISART_USER"
+$solisart_passwd=ENV["SOLISART_PASSWD"] if ENV.has_key? "SOLISART_PASSWD"
+
 opts.each do |opt, arg|
   case opt
     when '--help'
@@ -281,6 +292,11 @@ opts.each do |opt, arg|
     -f, --format <format>: output format. Valid formats: csv, json or fancy
                            (default: fancy)
     -O, --output         : write output to file
+
+    -I, --installation-id <id>
+    -u, --user <username>
+    -p, --passwd <passwd>
+    -s, --host <host-ip>
 "
       exit 2
     when '--format'
@@ -289,6 +305,14 @@ opts.each do |opt, arg|
       $csv_headers = false
     when '--output'
       $output_filename = arg
+    when '--user'
+      $solisart_user = arg
+    when '--passwd'
+      $solisart_passwd = arg
+    when '--host'
+      $solisart_host = arg
+    when '--installation-id'
+      $solisart_installation_id = arg
   end
 end
 
