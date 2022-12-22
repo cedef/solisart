@@ -32,13 +32,13 @@ SOLISART_DATA = {
   #"160" => "donnee_tconfort_3",
   #"161" => "donnee_tconfort_4",
   #"162" => "donnee_tconfort_5",
-  "163" => "t_eau_chaude_confort",
+  "163" => "consigne_t_eau_chaude_confort",
   "164" => "t_maison_reduit",
   #"166" => "donnee_treduit_2",
   #"167" => "donnee_treduit_3",
   #"168" => "donnee_treduit_4",
   #"169" => "donnee_treduit_5",
-  "170" => "t_eau_chaude_reduit",
+  "170" => "consigne_t_eau_chaude_reduit",
   "584" => "t1_capteur_solaire",
   "585" => "t2_chaudiere_capteur_froid",
   "586" => "t3_ballon_sanitaire_bas",
@@ -227,6 +227,8 @@ def get_table_output(records)
     T6° Chaudière:                  #{EMOJIS[:bois]}   #{get_value_by_label(records, "t6_chaudiere")}°C
 
     T5° Ballon Tampon:              #{EMOJIS[:batterie]}  #{get_value_by_label(records, "t5_ballon_tampon")}°C   (#{get_value_by_label(records, "pct_bal_tampon")}%)
+
+    T°  Consigne sanitaire:         #{EMOJIS[:thermometre]}   #{get_value_by_label(records, "consigne_t_eau_chaude_confort")}°C
     T4° Ballon sanitaire (haut):    #{EMOJIS[:eau_chaude]}  #{get_value_by_label(records, "t4_ballon_sanitaire_haut")}°C
     T3° Ballon sanitaire (bas):     #{EMOJIS[:eau_froide]}  #{get_value_by_label(records, "t3_ballon_sanitaire_bas")}°C
   """
