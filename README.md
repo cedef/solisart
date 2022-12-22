@@ -7,17 +7,17 @@ This is how looks like:
 ```
 ❯ solisart-get.rb 
 
-    T°   Consigne:                  🌡   19.5°C
+    T°   Consigne:                  🌡  19.5°C
     T11° Maison:                    🏠  20.2°C
 
-    T9° Extérieure:                 🌤   21.0°C
+    T9° Extérieure:                 🌤  21.0°C
     T1° Capteurs solaire:           🌞  25.2°C
 
     T6° Chaudière:                  🪵   75.0°C
 
     T5° Ballon Tampon:              🔋  32.3°C   (11%)
 
-    T°  Consigne sanitaire:         🌡   47.0°C
+    T°  Consigne sanitaire:         🌡  47.0°C
     T4° Ballon sanitaire (haut):    🩸  60.4°C
     T3° Ballon sanitaire (bas):     💧  44.8°C
 ```
