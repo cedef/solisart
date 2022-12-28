@@ -94,6 +94,12 @@ CSV_FIELDS = [
   "circulateur_solaire",
   "pct_v3v_solaire",
   "pct_v3v_chaudiere",
+  "c4_ballon_sanitaire_haut",
+  "c5_ballon_sanitaire_bas",
+  "c6_ballon_tampon",
+  "c7_appoint_2",
+  "c1_maison",
+  "c2_unknown",
 ]
 
 def retrieve_data
