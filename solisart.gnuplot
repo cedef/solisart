@@ -2,27 +2,35 @@ set datafile separator ','
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S"
 
+
 set key autotitle columnhead # use the first line as title
-set key outside;
-set key right top;
-#set term pbm size 1024, 768
-set term canvas size 1600, 900
-#set size 0.5, 0.5
+#set key outside;
+set key left top
+set key font ",14"
+set key width 10
 set format x "%d %b %H:%M"
 set xtics rotate
-set grid y2
+set grid y
 
-set yrange [0:100]
-
-set y2tics 5 nomirror
-set ytics 20 nomirror
-
-set ylabel "Pourcentages"
-set y2label "Temperatures"
-set xlabel 'Date'
+set term pngcairo size 1600, 1200
+set output "/tmp/temperatures.png"
 
 set xrange [xfrom:xto]
 
-plot for [i=2:8] inputfile using 1:i with lines lw 2 axes x1y2, \
-     for [i=9:11] "" using 1:i with lines dashtype 4 lw 2 axes x1y2, \
-     for [i=12:18] "" using 1:i with lines dashtype 3 lw 1 axes x1y1
+set yrange [0:100]
+set ytics 5
+set ylabel "°C"
+plot for [i=2:8] inputfile using 1:i with lines lw 2 axes x1y1, \
+     for [i=9:11] inputfile using 1:i with lines dashtype 4 lw 2 axes x1y1
+
+set output "/tmp/circulateurs.png"
+set ytics 10
+set yrange [-5:125]
+set ylabel "%"
+
+plot for [i=12:19] inputfile using 1:i with lines lw 2
+#
+#set ylabel "On / Off"
+#set yrange [-1:5]
+#
+#plot for [i=20:25] inputfile using 1:i with lines dashtype 3 lw 1 axes x1y1
