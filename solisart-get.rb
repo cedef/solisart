@@ -13,11 +13,12 @@ EMOJIS = {
   :batterie => "🔋",
   :eau_chaude => "🩸",
   :eau_froide => "💧",
-  :flame => "🔥",
+  :flamme => "🔥",
   :maison => "🏠",
-  :meteo_ext => "🌤",
+  :meteo_ext => "⛅",
   :soleil => "🌞",
   :thermometre => "🌡",
+  :fleche_boucle => "🔃",
 }
 
 
@@ -105,20 +106,20 @@ CSV_FIELDS = [
 def retrieve_data
     #resp = HTTParty.get('http://192.168.1.42/')
     #puts "Cookies: #{session_cookie}"
-    
+
     resp_login = HTTParty.post("#{$solisart_host}/admin/?page=installation&id=#{$solisart_installation_id}",
                                :body => { :id => $solisart_user,
                                           :pass => $solisart_passwd,
                                           :ihm => "admin",
                                           :connexion => "Se+connecter" },
                                           )
-    
+
     cookie_hash = HTTParty::CookieHash.new
     session_cookie = resp_login.get_fields("Set-Cookie").each { |c| cookie_hash.add_cookies(c) }
     #puts resp_login.code
     #puts resp_login.headers["set-cookie"]
     #puts resp_login.body.slice(0..300)
-    
+
     resp_data = HTTParty.post("#{$solisart_host}/admin/divers/ajax/lecture_valeurs_donnees.php",
                               :body => { :id      => Base64.encode64($solisart_installation_id),
                                          :heure   => "0",
@@ -204,39 +205,61 @@ def get_value_by_label(records, label)
   end
 end
 
-def get_current_production(records)
-  c4_haut_ballon = "haut de ballon sanitaire"
-  c5_bas_ballon  = "bas de ballon sanitaire"
-  c1_chauffage_maison = "maison"
-  c6_ballon_tampon = "ballon tampon"
-
-  if get_value_by_label(records, "c4_ballon_sanitaire_haut") == "1"
-    c4_haut_ballon = "#{EMOJIS[:eau_chaude]} [" + c4_haut_ballon + "]" 
-  end
-  if get_value_by_label(records, "c5_ballon_sanitaire_bas") == "1"
-    c4_haut_ballon = "#{EMOJIS[:eau_froide]} [" + c5_bas_ballon + "]" 
-  end
-  #if get_value_by_label(records, "") == "1"
-  #  c4_haut_ballon = "#{$EMOJIS[:solaire]} [" + c4_haut_ballon + "]" 
-  #end
-  return c4_haut_ballon
-end
-
 def get_table_output(records)
+  cible_chaleur = {
+    :haut_ballon => "    ",
+    :bas_ballon  => "    ",
+    :maison => "    ",
+    :ballon_tampon => "    ",
+  }
+  if get_value_by_label(records, "pct_v3v_solaire") != "100"
+    production_chaleur = EMOJIS[:soleil]
+  elsif get_value_by_label(records, "c6_ballon_tampon") == "100"
+    production_chaleur = EMOJIS[:batterie]
+  else
+    production_chaleur = EMOJIS[:flamme]
+  end
+  if get_value_by_label(records, "circulateur_ballon_sanitaire_haut") != "0"
+    cible_chaleur[:haut_ballon] = "#{production_chaleur}  "
+  end
+  if get_value_by_label(records, "circulateur_ballon_sanitaire_bas") != "0"
+    cible_chaleur[:bas_ballon] = "#{production_chaleur}  "
+  end
+  if get_value_by_label(records, "circulateur_maison") != "0"
+    cible_chaleur[:maison] = "#{production_chaleur}  "
+  end
+  if get_value_by_label(records, "circulateur_ballon_sanitaire_haut") == "0" and \
+      get_value_by_label(records, "circulateur_ballon_sanitaire_bas") == "0" and \
+      get_value_by_label(records, "circulateur_maison") == "0"
+    cible_chaleur[:ballon_tampon] = "#{production_chaleur}  "
+  end
+
   return """
     T°   Consigne:                  #{EMOJIS[:thermometre]}   #{get_value_by_label(records, "consigne_t_maison")}°C
-    T11° Maison:                    #{EMOJIS[:maison]}  #{get_value_by_label(records, "t11_maison")}°C
+#{cible_chaleur[:maison]}T11° Maison:                    #{EMOJIS[:maison]}  #{get_value_by_label(records, "t11_maison")}°C
 
-    T9° Extérieure:                 #{EMOJIS[:meteo_ext]}   #{get_value_by_label(records, "t9_exterieur")}°C
+    T9° Extérieure:                 #{EMOJIS[:meteo_ext]}  #{get_value_by_label(records, "t9_exterieur")}°C
+
     T1° Capteurs solaire:           #{EMOJIS[:soleil]}  #{get_value_by_label(records, "t1_capteur_solaire")}°C
+
+        -> retour capteur:          #{EMOJIS[:fleche_boucle]}  #{get_value_by_label(records, "t15_retour_capteur")}°C
+        -> chaud échangeur:         #{EMOJIS[:eau_chaude]}  #{get_value_by_label(records, "t10_chaud_echangeur")}°C
 
     T6° Chaudière:                  #{EMOJIS[:bois]}   #{get_value_by_label(records, "t6_chaudiere")}°C
 
-    T5° Ballon Tampon:              #{EMOJIS[:batterie]}  #{get_value_by_label(records, "t5_ballon_tampon")}°C   (#{get_value_by_label(records, "pct_bal_tampon")}%)
+#{cible_chaleur[:ballon_tampon]}T5° Ballon Tampon:              #{EMOJIS[:batterie]}  #{get_value_by_label(records, "t5_ballon_tampon")}°C   (#{get_value_by_label(records, "pct_bal_tampon")}%)
 
     T°  Consigne sanitaire:         #{EMOJIS[:thermometre]}   #{get_value_by_label(records, "consigne_t_eau_chaude_confort")}°C
-    T4° Ballon sanitaire (haut):    #{EMOJIS[:eau_chaude]}  #{get_value_by_label(records, "t4_ballon_sanitaire_haut")}°C
-    T3° Ballon sanitaire (bas):     #{EMOJIS[:eau_froide]}  #{get_value_by_label(records, "t3_ballon_sanitaire_bas")}°C
+#{cible_chaleur[:haut_ballon]}T4° Ballon sanitaire (haut):    #{EMOJIS[:eau_chaude]}  #{get_value_by_label(records, "t4_ballon_sanitaire_haut")}°C
+#{cible_chaleur[:bas_ballon]}T3° Ballon sanitaire (bas):     #{EMOJIS[:eau_froide]}  #{get_value_by_label(records, "t3_ballon_sanitaire_bas")}°C
+
+
+    circ_sanitaire (haut): #{get_value_by_label(records, "circulateur_ballon_sanitaire_haut")}%
+    circ_sanitaire (bas):  #{get_value_by_label(records, "circulateur_ballon_sanitaire_bas")}%
+    circ_maison:           #{get_value_by_label(records, "circulateur_maison")}%
+    pct_v3v_solaire: :     #{get_value_by_label(records, "pct_v3v_solaire")}%
+    pct_v3v_chaudiere:     #{get_value_by_label(records, "pct_v3v_chaudiere")}%
+
   """
 end
 

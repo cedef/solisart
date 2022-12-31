@@ -29,8 +29,8 @@ set yrange [-5:125]
 set ylabel "%"
 
 plot for [i=12:19] inputfile using 1:i with lines lw 2
-#
+
 #set ylabel "On / Off"
 #set yrange [-1:5]
-#
+
 #plot for [i=20:25] inputfile using 1:i with lines dashtype 3 lw 1 axes x1y1
