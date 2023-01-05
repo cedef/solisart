@@ -21,6 +21,9 @@ EMOJIS = {
   :fleche_boucle => "🔃",
 }
 
+CACHE_FOLDER = "/tmp/solisart"
+Dir.mkdir(CACHE_FOLDER) unless Dir.exist? CACHE_FOLDER
+
 
 TEMP_MIN_BALLON_TAMPON=28.0
 TEMP_MAX_BALLON_TAMPON=65.0
@@ -103,7 +106,94 @@ CSV_FIELDS = [
   "c2_unknown",
 ]
 
-def retrieve_data
+NATIVE_SOLISART_CSV_FIELDS = {
+  "Date"          =>  "",
+  "Tcapt"         =>  "t1_capteur_solaire",
+  "TcaptF"        =>  "t2_chaudiere_capteur_froid",
+  "TbalS"         =>  "t3_ballon_sanitaire_bas",
+  "TbalA"         =>  "t4_ballon_sanitaire_haut",
+  "TalT"          =>  "t5_ballon_tampon",
+  "TpoeleB"       =>  "t6_chaudiere",
+  "TretC"         =>  "t15_retour_capteur",
+  "TdepC"         =>  "t10_chaud_echangeur",
+  "Text"          =>  "t9_exterieur",
+  "Tcap2"         =>  "",
+  "TZ1"           =>  "t11_maison",
+  "TZ2"           =>  "",
+  "TZ3"           =>  "",
+  "TZ4"           =>  "",
+  "T15"           =>  "t15_retour_capteur",
+  "T16"           =>  "t16",
+  "Deb1"          =>  "",
+  "Deb2"          =>  "",
+  "Deb3"          =>  "",
+  "Deb4"          =>  "",
+  "Deb5"          =>  "",
+  "HC/HP"         =>  "",
+  "APP"           =>  "APP",
+  "SOL"           =>  "SOL",
+  "BTC"           =>  "BTC",
+  "C7"            =>  "c7_appoint_2",
+  "C1"            =>  "c1_maison",
+  "C2"            =>  "c2_unknown",
+  "C3"            =>  "c3_unknown",
+  "V3VAB"         =>  "v3vab",
+  "V3VAS"         =>  "v3vas",
+  "S10"           =>  "s10",
+  "S11"           =>  "s11",
+  "V3VSS"         =>  "v3vss",
+  "V3VSB"         =>  "v3vsb",
+  "chdr1"         =>  "chdr1",
+  "chdr2"         =>  "chdr2",
+  "Tcons1"        =>  "consigne_t_maison",
+  "Tcons2"        =>  "",
+  "Tcons3"        =>  "",
+  "Tcons4"        =>  "",
+  "TconsECS"      =>  "",
+  "POSV3VSOL"     =>  "posv3vsol",
+  "POSV3VAPP"     =>  "posv3vapp",
+  "POSV3VOPT"     =>  "posv3vopt",
+  "DemZ1"         =>  "DemZ1",
+  "DemZ2"         =>  "",
+  "DemZ3"         =>  "",
+  "DemZ4"         =>  "",
+  "DemECS"        =>  "DemECS",
+  "MD"            =>  "MD",
+  "dtcapt3mn"     =>  "",
+  "TconPisc_dep"  =>  "",
+  "Tcaptcalc"     =>  "Tcaptcalc",
+  "anticc_chd"    =>  "anticc_chd",
+  "var_cir"       =>  "",
+  "demPisc_D"     =>  "",
+  "def_T"         =>  "",
+  "def"           =>  "",
+  "tfmoy"         =>  "",
+  "index1"        =>  "",
+  "index2"        =>  "",
+  "index3"        =>  "",
+  "index4"        =>  "",
+  "index5"        =>  "",
+  "index6"        =>  "",
+  "index1S"       =>  "",
+  "index2S"       =>  "",
+  "index3S"       =>  "",
+  "index4S"       =>  "",
+  "index5S"       =>  "",
+  "index6S"       =>  "",
+}
+
+def datename_to_strftime(datename)
+  if datename == "month"
+    return DateTime.now.strftime("%Y-%m")
+  elsif datename == "lastmonth"
+    lastmonth = DateTime.now.prev_month
+    return lastmonth.strftime("%Y-%m")
+  else
+    return DateTime.strptime(datename).strftime("%Y-%m")
+  end
+end
+
+def retrieve_data(from)
     #resp = HTTParty.get('http://192.168.1.42/')
     #puts "Cookies: #{session_cookie}"
 
@@ -120,12 +210,28 @@ def retrieve_data
     #puts resp_login.headers["set-cookie"]
     #puts resp_login.body.slice(0..300)
 
-    resp_data = HTTParty.post("#{$solisart_host}/admin/divers/ajax/lecture_valeurs_donnees.php",
-                              :body => { :id      => Base64.encode64($solisart_installation_id),
-                                         :heure   => "0",
-                                         :periode => 5 },
-                              :headers => { :Cookie => cookie_hash.to_cookie_string } )
-    return resp_data.body.split("\n").last.gsub(/valeur /, "").gsub(/ \//, "").split("><").reject{|l| l.start_with? "<valeurs " or l.start_with? "/valeurs>"}
+    if from == "webui"
+      resp_data = HTTParty.post("#{$solisart_host}/admin/divers/ajax/lecture_valeurs_donnees.php",
+                                :body => { :id      => Base64.encode64($solisart_installation_id),
+                                           :heure   => "0",
+                                           :periode => 5 },
+                                :headers => { :Cookie => cookie_hash.to_cookie_string } )
+      return resp_data.body.split("\n").last.gsub(/valeur /, "").gsub(/ \//, "").split("><").reject{|l| l.start_with? "<valeurs " or l.start_with? "/valeurs>"}
+    else
+      if from == "month"
+        date_ym = datename_to_strftime(from)
+        resp_data = HTTParty.get("#{$solisart_host}/admin/export.php?fichier=donnees-#{$solisart_installation_id}-#{date_ym}.csv",
+          :body => {
+            :id      => Base64.encode64($solisart_installation_id),
+          },
+          :headers => { :Cookie => cookie_hash.to_cookie_string } )
+        retcsv = CSV.parse(resp_data.gsub(/SolisConfrt VsD\.03\+6\n/, ""), headers = true, col_sep = ";")
+        pp retcsv
+      end
+      # 1 retrieve file
+      # 2 if from == month => file is csv, return CSV array
+      # 3 if from != mobth => file is zip, unzip then return CSV array
+    end
 end
 
 def calculate_pct_ballon_tampon(temperature_ballon_tampon)
@@ -301,6 +407,7 @@ opts = GetoptLong.new(
   ["--passwd",          "-p", GetoptLong::REQUIRED_ARGUMENT],
   ["--host",            "-s", GetoptLong::REQUIRED_ARGUMENT],
   ["--installation-id", "-I", GetoptLong::REQUIRED_ARGUMENT],
+  ["--input",           "-i", GetoptLong::OPTIONAL_ARGUMENT],
 )
 
 # DEFAULT VARIABLES:
@@ -308,11 +415,13 @@ $format = "fancy"
 $output_filename = nil
 $output_append = false
 $csv_headers = true
+$get_data_from = "webui"
 
 $solisart_installation_id=ENV["SOLISART_INSTALLATION_ID"] if ENV.has_key? "SOLISART_INSTALLATION_ID"
 $solisart_host=ENV["SOLISART_HOST"] if ENV.has_key? "SOLISART_HOST"
 $solisart_user=ENV["SOLISART_USER"] if ENV.has_key? "SOLISART_USER"
 $solisart_passwd=ENV["SOLISART_PASSWD"] if ENV.has_key? "SOLISART_PASSWD"
+$cache_folder=ENV["SOLISART_CACHE_FOLDER"] if ENV.has_key? "SOLISART_CACHE_FOLDER"
 
 opts.each do |opt, arg|
   case opt
@@ -323,11 +432,13 @@ opts.each do |opt, arg|
     -f, --format <format>: output format. Valid formats: csv, json or fancy
                            (default: fancy)
     -O, --output         : write output to file
+    -C, --output         : cache folder where to write downloaded CSV/ZIP files
 
     -I, --installation-id <id>
     -u, --user <username>
     -p, --passwd <passwd>
     -s, --host <host-ip>
+    -i, --input webui,month,lastmonth,<yyyy-mm> (defaults to webui)
 "
       exit 2
     when '--format'
@@ -344,30 +455,43 @@ opts.each do |opt, arg|
       $solisart_host = arg
     when '--installation-id'
       $solisart_installation_id = arg
+    when '--input'
+      if arg == ''
+        $get_data_from = "month"
+      else
+        $get_data_from = arg
+      end
   end
 end
 
-xml_array = retrieve_data
-results = process_data xml_array
+data = retrieve_data($get_data_from)
+if $get_data_from == "webui"
+  xml_array = data
+  results = process_data xml_array
 
-if not $output_filename.nil? and File.exists? $output_filename and $format == "csv"
-  $csv_headers = false
-end
+  if not $output_filename.nil? and File.exists? $output_filename and $format == "csv"
+    $csv_headers = false
+  end
 
-if $output_filename.nil?
-  output = STDOUT
+  if $output_filename.nil?
+    output = STDOUT
+  else
+    output = File.open($output_filename, "a")
+  end
+
+  if $format == "fancy"
+    o = get_table_output results
+  elsif $format == "csv"
+    o = get_csv_output results
+  elsif $format == "raw"
+    o = get_raw_output results
+  elsif $format == "json"
+    o = get_json_output results
+  end
+  output.puts o
+  output.close
+elsif $get_data_from == "month"
+  csv = data
 else
-  output = File.open($output_filename, "a")
+  zipfile = data
 end
-
-if $format == "fancy"
-  o = get_table_output results
-elsif $format == "csv"
-  o = get_csv_output results
-elsif $format == "raw"
-  o = get_raw_output results
-elsif $format == "json"
-  o = get_json_output results
-end
-output.puts o
-output.close
