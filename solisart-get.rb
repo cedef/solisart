@@ -21,9 +21,6 @@ EMOJIS = {
   :fleche_boucle => "🔃",
 }
 
-CACHE_FOLDER = "/tmp/solisart"
-Dir.mkdir(CACHE_FOLDER) unless Dir.exist? CACHE_FOLDER
-
 
 TEMP_MIN_BALLON_TAMPON=28.0
 TEMP_MAX_BALLON_TAMPON=65.0
@@ -107,7 +104,7 @@ CSV_FIELDS = [
 ]
 
 NATIVE_SOLISART_CSV_FIELDS = {
-  "Date"          =>  "",
+  "Date"          =>  "date",
   "Tcapt"         =>  "t1_capteur_solaire",
   "TcaptF"        =>  "t2_chaudiere_capteur_froid",
   "TbalS"         =>  "t3_ballon_sanitaire_bas",
@@ -193,10 +190,7 @@ def datename_to_strftime(datename)
   end
 end
 
-def retrieve_data(from)
-    #resp = HTTParty.get('http://192.168.1.42/')
-    #puts "Cookies: #{session_cookie}"
-
+def retrieve_data(source)
     resp_login = HTTParty.post("#{$solisart_host}/admin/?page=installation&id=#{$solisart_installation_id}",
                                :body => { :id => $solisart_user,
                                           :pass => $solisart_passwd,
@@ -205,12 +199,8 @@ def retrieve_data(from)
                                           )
 
     cookie_hash = HTTParty::CookieHash.new
-    session_cookie = resp_login.get_fields("Set-Cookie").each { |c| cookie_hash.add_cookies(c) }
-    #puts resp_login.code
-    #puts resp_login.headers["set-cookie"]
-    #puts resp_login.body.slice(0..300)
-
-    if from == "webui"
+    resp_login.get_fields("Set-Cookie").each { |c| cookie_hash.add_cookies(c) }
+    if source == "webui"
       resp_data = HTTParty.post("#{$solisart_host}/admin/divers/ajax/lecture_valeurs_donnees.php",
                                 :body => { :id      => Base64.encode64($solisart_installation_id),
                                            :heure   => "0",
@@ -218,19 +208,13 @@ def retrieve_data(from)
                                 :headers => { :Cookie => cookie_hash.to_cookie_string } )
       return resp_data.body.split("\n").last.gsub(/valeur /, "").gsub(/ \//, "").split("><").reject{|l| l.start_with? "<valeurs " or l.start_with? "/valeurs>"}
     else
-      if from == "month"
-        date_ym = datename_to_strftime(from)
-        resp_data = HTTParty.get("#{$solisart_host}/admin/export.php?fichier=donnees-#{$solisart_installation_id}-#{date_ym}.csv",
-          :body => {
-            :id      => Base64.encode64($solisart_installation_id),
-          },
-          :headers => { :Cookie => cookie_hash.to_cookie_string } )
-        retcsv = CSV.parse(resp_data.gsub(/SolisConfrt VsD\.03\+6\n/, ""), headers = true, col_sep = ";")
-        pp retcsv
-      end
-      # 1 retrieve file
-      # 2 if from == month => file is csv, return CSV array
-      # 3 if from != mobth => file is zip, unzip then return CSV array
+      date_ym = DateTime.now.strftime("%Y-%m")
+      resp_data = HTTParty.get("#{$solisart_host}/admin/export.php?fichier=donnees-#{$solisart_installation_id}-#{date_ym}.csv",
+        :body => {
+          :id      => Base64.encode64($solisart_installation_id),
+        },
+        :headers => { :Cookie => cookie_hash.to_cookie_string } )
+      return resp_data
     end
 end
 
@@ -369,59 +353,57 @@ def get_table_output(records)
   """
 end
 
-def get_csv_output(records)
-  csv_array = []
-  CSV_FIELDS.each do |f|
-    csv_array << get_value_by_label(records, f)
-  end
-  csv_string = CSV.generate do |csv|
-    if $csv_headers
-      csv << CSV_FIELDS
-    end
-    csv << csv_array
-  end
-  return csv_string
-end
-
-def get_json_output(records)
-  csv_array = []
-  CSV_FIELDS.each do |f|
-    csv_array << get_value_by_label(records, f)
-  end
-  csv_string = CSV.generate do |csv|
-    if $csv_headers
-      csv << CSV_FIELDS
-    end
-    csv << csv_array
-  end
-  return csv_string
-end
+#def get_csv_output(records)
+#  csv_array = []
+#  CSV_FIELDS.each do |f|
+#    csv_array << get_value_by_label(records, f)
+#  end
+#  csv_string = CSV.generate do |csv|
+#    if $csv_headers
+#      csv << CSV_FIELDS
+#    end
+#    csv << csv_array
+#  end
+#  return csv_string
+#end
+#
+#def get_json_output(records)
+#  csv_array = []
+#  CSV_FIELDS.each do |f|
+#    csv_array << get_value_by_label(records, f)
+#  end
+#  csv_string = CSV.generate do |csv|
+#    if $csv_headers
+#      csv << CSV_FIELDS
+#    end
+#    csv << csv_array
+#  end
+#  return csv_string
+#end
 
 opts = GetoptLong.new(
   ["--help",            "-h", GetoptLong::NO_ARGUMENT],
-  ["--format",          "-f", GetoptLong::REQUIRED_ARGUMENT],
-  ["--no-headers",      "-H", GetoptLong::NO_ARGUMENT],
-  ["--output",          "-O", GetoptLong::REQUIRED_ARGUMENT],
-  ["--append",          "-A", GetoptLong::NO_ARGUMENT],
   ["--user",            "-u", GetoptLong::REQUIRED_ARGUMENT],
   ["--passwd",          "-p", GetoptLong::REQUIRED_ARGUMENT],
   ["--host",            "-s", GetoptLong::REQUIRED_ARGUMENT],
   ["--installation-id", "-I", GetoptLong::REQUIRED_ARGUMENT],
-  ["--input",           "-i", GetoptLong::OPTIONAL_ARGUMENT],
+  ["--input",           "-i", GetoptLong::REQUIRED_ARGUMENT],
+  ["--output",          "-O", GetoptLong::REQUIRED_ARGUMENT],
+  ["--format",          "-f", GetoptLong::REQUIRED_ARGUMENT],
+  ["--get-latest-csv",  "-R", GetoptLong::NO_ARGUMENT],
 )
 
 # DEFAULT VARIABLES:
 $format = "fancy"
 $output_filename = nil
 $output_append = false
-$csv_headers = true
 $get_data_from = "webui"
+$get_latest_csv = false
 
 $solisart_installation_id=ENV["SOLISART_INSTALLATION_ID"] if ENV.has_key? "SOLISART_INSTALLATION_ID"
 $solisart_host=ENV["SOLISART_HOST"] if ENV.has_key? "SOLISART_HOST"
 $solisart_user=ENV["SOLISART_USER"] if ENV.has_key? "SOLISART_USER"
 $solisart_passwd=ENV["SOLISART_PASSWD"] if ENV.has_key? "SOLISART_PASSWD"
-$cache_folder=ENV["SOLISART_CACHE_FOLDER"] if ENV.has_key? "SOLISART_CACHE_FOLDER"
 
 opts.each do |opt, arg|
   case opt
@@ -429,22 +411,40 @@ opts.each do |opt, arg|
       puts "#{$0} [options]
 
     -h, --help           : show this help message
+
+    -I, --installation-id <id>  - Equivalent ENV: SOLISART_INSTALLATION_ID
+    -u, --user <username>       - Equivalent ENV: SOLISART_USER
+    -p, --passwd <passwd>       - Equivalent ENV: SOLISART_PASSWD
+    -s, --host <host-ip>        - Equivalent ENV: SOLISART_HOST
+
+    -i, --input webui,file.csv : read from an input and print data from it (defaults to webui). Also see formats
+    -O, --output         : write output to file
     -f, --format <format>: output format. Valid formats: csv, json or fancy
                            (default: fancy)
-    -O, --output         : write output to file
-    -C, --output         : cache folder where to write downloaded CSV/ZIP files
+    -R, --get-latest-csv : get latest CSV data file from solisart, make some cleanup and output it
 
-    -I, --installation-id <id>
-    -u, --user <username>
-    -p, --passwd <passwd>
-    -s, --host <host-ip>
-    -i, --input webui,month,lastmonth,<yyyy-mm> (defaults to webui)
+
+    Examples:
+      # Default behaviour, without option is equivalent to:
+      #{$0} -i webui -f fancy -O -
+      
+      # Display latest record from any csv file:
+      #{$0} -i /path/to/latest.csv -f fancy
+      
+      # Display all records from any csv file:
+      #{$0} -i /path/to/latest.csv -f csv
+      
+      # Transform solisart CSV format into custom (more readable) CSV format
+      #{$0} -i /path/to/2022-12.csv -O 2022-12-custom.csv
+
+      # Retrieve/refresh monthly CSV file from solisart (with some transformation done within this script)
+      # (Typically called from a cronjob script)
+      #{$0} --get-latest-csv -O latest.csv
+
 "
       exit 2
     when '--format'
       $format = arg
-    when '--no-headers'
-      $csv_headers = false
     when '--output'
       $output_filename = arg
     when '--user'
@@ -456,42 +456,36 @@ opts.each do |opt, arg|
     when '--installation-id'
       $solisart_installation_id = arg
     when '--input'
-      if arg == ''
-        $get_data_from = "month"
-      else
-        $get_data_from = arg
-      end
+      $get_data_from = arg
+    when '--get-latest-csv'
+      $get_latest_csv = true
   end
 end
 
-data = retrieve_data($get_data_from)
-if $get_data_from == "webui"
-  xml_array = data
-  results = process_data xml_array
-
-  if not $output_filename.nil? and File.exists? $output_filename and $format == "csv"
-    $csv_headers = false
-  end
-
-  if $output_filename.nil?
-    output = STDOUT
-  else
-    output = File.open($output_filename, "a")
-  end
-
-  if $format == "fancy"
+if not $get_latest_csv and $get_data_from == "webui"
+    data = retrieve_data($get_data_from)
+    xml_array = data
+    results = process_data xml_array
     o = get_table_output results
-  elsif $format == "csv"
-    o = get_csv_output results
-  elsif $format == "raw"
-    o = get_raw_output results
-  elsif $format == "json"
-    o = get_json_output results
-  end
-  output.puts o
-  output.close
-elsif $get_data_from == "month"
-  csv = data
+    puts o
+
 else
-  zipfile = data
+  if $get_latest_csv
+    raw_csv_data = retrieve_data("latest")
+  else
+    ## Transform header:
+    raw_csv_data = File.read($get_data_from)
+  end
+  raw_csv_data = raw_csv_data.split("\n")
+  raw_csv_data.reject!{|l| l == "SolisConfrt VsD.03+6" }
+  raw_headers = raw_csv_data.first
+  NATIVE_SOLISART_CSV_FIELDS.each do |k,v|
+    raw_headers.sub!(k, v) unless v.empty?
+  end
+  # Remove (duplicated) headers that appears multiple times in the file
+  raw_csv_data.reject!{|l| l.start_with? "Date;Tcapt;TcaptF;TbalS;TbalA;TalT;TpoeleB;TretC;"}
+  outfh = STDOUT
+  outfh = File.open($output_filename, "w+") unless $output_filename.nil?
+  outfh.puts raw_csv_data.join("\n")
+  outfh.close
 end
