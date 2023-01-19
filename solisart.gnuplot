@@ -69,9 +69,10 @@ plot \
            '' using 1:5 with lines lw 3 lt 7 dashtype 3,  \
            '' using 1:12 with lines lw 2 lt 1, \
            '' using 1:6 with lines lw 2 lt 2, \
-           '' using 1:8 with lines lw 1 lt 6 dashtype 5, \
-           '' using 1:9 with lines lw 1 lt 7 dashtype 5, \
            '' using 1:2 with lines lw 2 lt 4
 
+
+#           '' using 1:8 with lines lw 1 lt 6 dashtype 5, \
+#           '' using 1:9 with lines lw 1 lt 7 dashtype 5, \
 #set size 1,0.20
 
