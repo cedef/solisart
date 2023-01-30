@@ -4,8 +4,8 @@ INPUT=$1
 FROM_TIME="${2:-2 hour ago}"
 TO_TIME="${3:-now}"
 
-OUTTEMP="${4:-/tmp/temperatures.png}"
-OUTCIRC="${5:-/tmp/circulateurs.png}"
+OUTTEMP="${4:-/tmp/temperatures.html}"
+#OUTCIRC="${5:-/tmp/circulateurs.png}"
 
 
 gnuplot -e "xfrom='$(date +"%d/%m/%y %H:%M" -d "${FROM_TIME}")'; \

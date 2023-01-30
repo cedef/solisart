@@ -51,7 +51,7 @@ plot \
 #set style lines
 
 set key font ",14"
-set yrange [0:100]
+set yrange [-5:100]
 set ytics 5
 set ylabel "°C"
 #set xlabel ""
@@ -61,6 +61,8 @@ set ylabel "°C"
 set format x "%d/%m/%y %H:%M"
 set xtics rotate
 
+#set y2range [-5:90]
+
 
 set bmargin at screen 0.10
 plot \
@@ -69,6 +71,7 @@ plot \
            '' using 1:5 with lines lw 3 lt 7 dashtype 3,  \
            '' using 1:12 with lines lw 2 lt 1, \
            '' using 1:6 with lines lw 2 lt 2, \
+           '' using 1:7 with lines lw 2 lt 8, \
            '' using 1:2 with lines lw 2 lt 4
 
 
