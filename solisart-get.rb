@@ -477,7 +477,8 @@ else
     raw_csv_data = File.read($get_data_from)
   end
   raw_csv_data = raw_csv_data.split("\n")
-  raw_csv_data.reject!{|l| l == "SolisConfrt VsD.03+6" }
+  raw_csv_data.reject!{|l| l.start_with? "SolisConfrt" }
+
   raw_headers = raw_csv_data.first
   NATIVE_SOLISART_CSV_FIELDS.each do |k,v|
     raw_headers.sub!(k, v) unless v.empty?
