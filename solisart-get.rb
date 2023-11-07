@@ -51,7 +51,7 @@ SOLISART_DATA = {
   "592" => "t9_exterieur",
   "593" => "t10_chaud_echangeur",
   "594" => "t11_maison",
-  "598" => "t15_retour_capteur",
+  "599" => "t16_retour_capteur",
   "614" => "circulateur_ballon_sanitaire_haut",
   "615" => "circulateur_ballon_sanitaire_bas",
   "616" => "circulateur_ballon_tampon",
@@ -86,7 +86,7 @@ CSV_FIELDS = [
   "t9_exterieur",
   "t10_chaud_echangeur",
   "t11_maison",
-  "t15_retour_capteur",
+  "t16_retour_capteur",
   "circulateur_ballon_sanitaire_haut",
   "circulateur_ballon_sanitaire_bas",
   "circulateur_ballon_tampon",
@@ -111,7 +111,7 @@ NATIVE_SOLISART_CSV_FIELDS = {
   "TbalA"         =>  "t4_ballon_sanitaire_haut",
   "TalT"          =>  "t5_ballon_tampon",
   "TpoeleB"       =>  "t6_chaudiere",
-  "TretC"         =>  "t15_retour_capteur",
+  "TretC"         =>  "t16_retour_capteur",
   "TdepC"         =>  "t10_chaud_echangeur",
   "Text"          =>  "t9_exterieur",
   "Tcap2"         =>  "",
@@ -119,8 +119,8 @@ NATIVE_SOLISART_CSV_FIELDS = {
   "TZ2"           =>  "",
   "TZ3"           =>  "",
   "TZ4"           =>  "",
-  "T15"           =>  "t15_retour_capteur",
-  "T16"           =>  "t16",
+  "T15"           =>  "t15",
+  "T16"           =>  "t16_retour_capteur",
   "Deb1"          =>  "",
   "Deb2"          =>  "",
   "Deb3"          =>  "",
@@ -261,6 +261,7 @@ def process_data xml_array
   xml_array.each do |l|
     h = decode_xml_line l
     results[h[:donnee]] = h
+    #puts ">>> #{l}"
     if h[:donnee] == "588"
       results["9588"] = h.clone
       results["9588"][:label] = SOLISART_DATA["9588"]
@@ -332,7 +333,7 @@ def get_table_output(records)
 
     T1° Capteurs solaire:           #{EMOJIS[:soleil]}  #{get_value_by_label(records, "t1_capteur_solaire")}°C
 
-        -> retour capteur:          #{EMOJIS[:fleche_boucle]}  #{get_value_by_label(records, "t15_retour_capteur")}°C
+        -> retour capteur:          #{EMOJIS[:fleche_boucle]}  #{get_value_by_label(records, "t16_retour_capteur")}°C
         -> chaud échangeur:         #{EMOJIS[:eau_chaude]}  #{get_value_by_label(records, "t10_chaud_echangeur")}°C
 
     T6° Chaudière:                  #{EMOJIS[:bois]}   #{get_value_by_label(records, "t6_chaudiere")}°C
@@ -466,7 +467,7 @@ if not $get_latest_csv and $get_data_from == "webui"
     data = retrieve_data($get_data_from)
     xml_array = data
     results = process_data xml_array
-    o = get_table_output results
+    o = get_table_output(results)
     puts o
 
 else
