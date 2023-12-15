@@ -214,7 +214,7 @@ def retrieve_data(source)
           :id      => Base64.encode64($solisart_installation_id),
         },
         :headers => { :Cookie => cookie_hash.to_cookie_string } )
-      return resp_data
+      return resp_data.body
     end
 end
 
@@ -477,6 +477,7 @@ else
     ## Transform header:
     raw_csv_data = File.read($get_data_from)
   end
+  #pp raw_csv_data
   raw_csv_data = raw_csv_data.split("\n")
   raw_csv_data.reject!{|l| l.start_with? "SolisConfrt" }
 
