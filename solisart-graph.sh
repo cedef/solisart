@@ -28,6 +28,12 @@ echo "
 Plotting $INPUT from $FROM_TIME to $TO_TIME. Output written to $OUTTEMP
 "
 
+echo gnuplot -e "xfrom='$(date +"%d/%m/%y %H:%M" -d "${FROM_TIME}")'; \
+            xto='$(date +"%d/%m/%y %H:%M" -d "${TO_TIME}")'; \
+            inputfile='${INPUT}'; \
+            outtemp='${OUTTEMP}'; \
+            outcirc='${OUTCIRC}'" -p $(dirname $0)/solisart.gnuplot
+
 gnuplot -e "xfrom='$(date +"%d/%m/%y %H:%M" -d "${FROM_TIME}")'; \
             xto='$(date +"%d/%m/%y %H:%M" -d "${TO_TIME}")'; \
             inputfile='${INPUT}'; \

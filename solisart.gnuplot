@@ -1,3 +1,4 @@
+#!/usr/bin/gnuplot
 set datafile separator ';'
 set xdata time
 set timefmt "%d/%m/%y %H:%M"
