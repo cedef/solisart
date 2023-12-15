@@ -20,7 +20,7 @@ set output outtemp
 set xrange [xfrom:xto]
 
 #set multiplot
-set multiplot layout 6,1
+set multiplot layout 12,1
 #set multiplot title "SolisArt Installation"
 
 
@@ -37,17 +37,18 @@ set style fill solid border -1
 set boxwidth 0.9
 
 set key font ",12"
-plot \
-    inputfile using 1:24 with lines lw 1 lt 3, \
-           '' using 1:($24+$31) with lines lw 1 lt 1, \
-           '' using 1:($24+$31+$32) with lines lw 1 lt 2, \
-           '' using 1:($24+$31+$32+$34) with lines lw 1 lt 3, \
-           '' using 1:($24+$31+$32+$34+$35) with lines lw 1 lt 4, \
-           '' using 1:($24+$31+$32+$34+$35+$36) with lines lw 1 lt 5, \
-           '' using 1:($24+$31+$32+$34+$35+$36+$44) with lines lw 1 lt 6, \
-           '' using 1:($24+$31+$32+$34+$35+$36+$44+$45) with lines lw 1 lt 7, \
-           '' using 1:($24+$31+$32+$34+$35+$36+$44+$45+$25) with lines lw 1 lt 8, \
-           '' using 1:($24+$31+$32+$34+$35+$36+$44+$45+$25+$28) with lines lw 2 lt 1 dashtype 3
+set yrange [0:110]
+plot inputfile using 1:24 with lines lw 2 lt 2
+#plot inputfile using 1:31 with lines lw 2 lt 3
+#plot inputfile using 1:32 with lines lw 2 lt 4
+#plot inputfile using 1:34 with lines lw 2 lt 5
+#plot inputfile using 1:35 with lines lw 2 lt 6
+#plot inputfile using 1:36 with lines lw 2 lt 7
+#plot inputfile using 1:44 with lines lw 2 lt 8
+plot inputfile using 1:45 with lines lw 2 lt 2
+plot inputfile using 1:27 with lines lw 2 lt 8
+plot inputfile using 1:28 with lines lw 2 lt 1
+
 
 #set style lines
 
@@ -61,6 +62,7 @@ set ylabel "°C"
 #set y2label "%"
 set format x "%d/%m/%y %H:%M"
 set xtics rotate
+set xtics xfrom, 7200, xto
 
 #set y2range [-5:90]
 
