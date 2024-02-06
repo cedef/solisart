@@ -55,6 +55,7 @@ plot inputfile using 1:28 with lines lw 2 lt 1
 set key font ",14"
 set yrange [-5:100]
 set ytics 5
+set y2tics 5
 set ylabel "°C"
 #set xlabel ""
 

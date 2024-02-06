@@ -324,6 +324,15 @@ def get_table_output(records)
       get_value_by_label(records, "circulateur_maison") == "0"
     cible_chaleur[:ballon_tampon] = "#{production_chaleur}  "
   end
+  status_v3v_chaudiere = "OFF"
+  if get_value_by_label(records, "pct_v3v_chaudiere").to_i > 0
+    status_v3v_chaudiere = "ON"
+  end
+
+  status_v3v_solaire = "OFF"
+  if get_value_by_label(records, "pct_v3v_solaire").to_i < 100
+    status_v3v_solaire = "ON"
+  end
 
   return """
     T°   Consigne:                  #{EMOJIS[:thermometre]}   #{get_value_by_label(records, "consigne_t_maison")}°C
@@ -348,8 +357,8 @@ def get_table_output(records)
     circ_sanitaire (haut): #{get_value_by_label(records, "circulateur_ballon_sanitaire_haut")}%
     circ_sanitaire (bas):  #{get_value_by_label(records, "circulateur_ballon_sanitaire_bas")}%
     circ_maison:           #{get_value_by_label(records, "circulateur_maison")}%
-    pct_v3v_solaire: :     #{get_value_by_label(records, "pct_v3v_solaire")}%
-    pct_v3v_chaudiere:     #{get_value_by_label(records, "pct_v3v_chaudiere")}%
+    pct_v3v_solaire: :     #{"%3d" % (get_value_by_label(records, "pct_v3v_solaire"))}%        [#{status_v3v_solaire}]
+    pct_v3v_chaudiere:     #{"%3d" % (get_value_by_label(records, "pct_v3v_chaudiere"))}%        [#{status_v3v_chaudiere}]
 
   """
 end
